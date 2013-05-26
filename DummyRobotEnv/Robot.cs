@@ -20,13 +20,11 @@ namespace DummyRobotEnv
         public bool connectionFailed;
         public string connection;
 
-        public  byte[] buf;
+        public byte[] buf;
         private int ipPort;
         private double dist1;
         private double dist2;
         private string address;
-        private string portName;
-        private SerialPort port;
         private Socket s;
 
         // Делегат события OnConnectionlost
@@ -48,6 +46,10 @@ namespace DummyRobotEnv
             s = _s;
             buf = new byte[32];
             data = " ";
+            IPEndPoint remoteIpEndPoint = s.RemoteEndPoint as IPEndPoint;
+            address = remoteIpEndPoint.Address.ToString();
+            ipPort = remoteIpEndPoint.Port;
+            connection = address + ":" + ipPort.ToString();
             s.BeginReceive(buf, 0, 32, SocketFlags.None, OnDataRecieved, null);
         }
 
@@ -68,27 +70,24 @@ namespace DummyRobotEnv
             // SocketType.Stream какаято муть иногда слипается ногда не доходит 
 
             OnDataRecievedExternal(this, null);
-            data = Encoding.ASCII.GetString(buf);
+            try
+            {
+                // Если сообщения будут приходить ОЧЕНЬ часто то буду слипаться и неправильно парситься.
+                // Нужен СДЦ.
 
-           // try
-           // {
-           //     // Если сообщения будут приходить ОЧЕНЬ часто то буду слипаться и неправильно парситься.
-           //     // Нужен СДЦ.
-           //
-           //     //data = Encoding.ASCII.GetString(buf);
-           //     //var dataArr = data.Split(',');
-           //     //x = Convert.ToInt32(dataArr[0]);
-           //     //y = Convert.ToInt32(dataArr[1]);
-           //     //obstRange = Convert.ToInt32(dataArr[2]);
-           //     //facing = Convert.ToDouble(dataArr[3]);
-           // }
-           //
-           // catch
-           // {
-           //     // Посылка побилась
-           // }
+                data = Encoding.ASCII.GetString(buf);
+                var dataArr = data.Split(',');
+                x = Convert.ToInt32(dataArr[0]);
+                y = Convert.ToInt32(dataArr[1]);
+                //obstRange = Convert.ToInt32(dataArr[2]);
+                //facing = Convert.ToDouble(dataArr[3]);
+            }
+            catch
+            {
+                // Посылка побилась
+            }
 
-           Array.Clear(buf, 0, 32);
+            Array.Clear(buf, 0, 32);
 
             try
             {
@@ -114,19 +113,6 @@ namespace DummyRobotEnv
                 try
                 {
                     s.Send(Encoding.ASCII.GetBytes(msg));
-                }
-                catch
-                {
-                    OnConnectionLost(this, null);
-                    connectionFailed = true;
-                }
-            }
-
-            else if (port != null && port.IsOpen)
-            {
-                try
-                {
-                    port.WriteLine(msg);
                 }
                 catch
                 {
