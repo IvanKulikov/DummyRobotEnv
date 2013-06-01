@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Drawing;
-using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,24 +9,27 @@ namespace DummyRobotEnv
 {
     public class Robot
     {
-        public int x;
+        
+        public int x;               // Реальное положение
         public int y;
-        public int gtX;
-        public int gtY;
-        public int id;
-        public int obstRange;
+        public int gtX;             // Куда ехать Х
+        public int gtY;             // Куда ехать У
+        public int id;        
+        public int obstRange;       // Расстояние до препятствия в см
         public string data;
-        public double facing;
+        public double facing;       // Азимут в градусах
         public bool selected;
+        private double dist1;       // Расстояние до опроных пунктов (базовых станций)
+        private double dist2;       // Пока не задействовано
+        private int ipPort; 
+        private string address;
+        public byte[] buf;
         public bool connectionFailed;
         public string connection;
-
-        public byte[] buf;
-        private int ipPort;
-        private double dist1;
-        private double dist2;
-        private string address;
+        
+        // Сокет для работы с клиентом, онициализируется в конструкторе
         private Socket s;
+        
         private Bitmap robotBmp = new Bitmap(Resources.Robot);
 
         // Делегат события OnConnectionlost
@@ -45,17 +47,26 @@ namespace DummyRobotEnv
             y = 250;
             dist1 = 0;
             dist2 = 0;
-            facing = 45;
-            s = _s;
-            buf = new byte[32];
-            data = " ";
+            
+            facing = 45; // Тест - вбито гвоздями
+            s = _s; // Инитаем сокет тем что передал сервер
+            buf = new byte[32]; // Буфер принемаемых данных
+            data = " "; // Строка для него
+
+            // Парсим удаленное соединение чтоб красиво писать в ГУЙ
             IPEndPoint remoteIpEndPoint = s.RemoteEndPoint as IPEndPoint;
             address = remoteIpEndPoint.Address.ToString();
             ipPort = remoteIpEndPoint.Port;
             connection = address + ":" + ipPort.ToString();
+            
+            // Начинаем асинхронно принемать данные
             s.BeginReceive(buf, 0, 32, SocketFlags.None, OnDataRecieved, null);
         }
 
+        /// <summary>
+        /// Двигвемся со скоростью в направлении куда facing
+        /// </summary>
+        /// <param name="speed"></param>
         public void Move(double speed)
         {
             var dx = speed * Math.Cos(facing);
@@ -64,6 +75,9 @@ namespace DummyRobotEnv
             y += (int)dy;
         }
 
+        /// <summary>
+        /// Определяем facing на основе полученных gtX, gtY
+        /// </summary>
         public void GetDirection()
         {
             var centerX = x + 32;       //map.offsetX;
