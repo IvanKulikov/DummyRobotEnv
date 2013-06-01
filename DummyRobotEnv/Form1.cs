@@ -33,7 +33,13 @@ namespace DummyRobotEnv
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            map.Update(g);
+            map.Draw(g);
+            map.Update();
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            Invalidate();
         }
     }
 }

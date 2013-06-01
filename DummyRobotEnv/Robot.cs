@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Drawing;
 using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using DummyRobotEnv.Properties;
 
 namespace DummyRobotEnv
 {
@@ -26,6 +28,7 @@ namespace DummyRobotEnv
         private double dist2;
         private string address;
         private Socket s;
+        private Bitmap robotBmp = new Bitmap(Resources.Robot);
 
         // Делегат события OnConnectionlost
         public delegate void RobotDelegate(Robot sender, EventArgs e);
@@ -38,11 +41,11 @@ namespace DummyRobotEnv
         // Всякие конструкторы.
         public Robot(Socket _s)
         {
-            x = 0;
-            y = 0;
+            x = 250;
+            y = 250;
             dist1 = 0;
             dist2 = 0;
-            facing = 0;
+            facing = 45;
             s = _s;
             buf = new byte[32];
             data = " ";
@@ -51,6 +54,37 @@ namespace DummyRobotEnv
             ipPort = remoteIpEndPoint.Port;
             connection = address + ":" + ipPort.ToString();
             s.BeginReceive(buf, 0, 32, SocketFlags.None, OnDataRecieved, null);
+        }
+
+        public void Move(double speed)
+        {
+            var dx = speed * Math.Cos(facing);
+            var dy = speed * Math.Sin(facing);
+            x += (int)dx;
+            y += (int)dy;
+        }
+
+        public void GetDirection()
+        {
+            var centerX = x + 32;       //map.offsetX;
+            var centerY = 532 - y;      //map.height + map.offsetY - y;
+            double dY = Math.Abs(centerX - gtX);
+            double dX = Math.Abs(centerY - (500 - gtY));
+            var tmpFacing = Math.Acos(dX / Math.Sqrt(dX * dX + dY * dY)) / Math.PI * 180;
+
+
+            if (dY < 0 && dX < 0)
+            {
+                  facing = tmpFacing;
+            }
+            else if (dY < 0 && dX > 0)
+            {
+                facing = tmpFacing + 360;
+            }
+  //          else if (dY > 0)
+  //          {
+  //              facing = -tmpFacing + 180;
+  //          }
         }
 
         public void Disconnect()
@@ -77,8 +111,9 @@ namespace DummyRobotEnv
 
                 data = Encoding.ASCII.GetString(buf);
                 var dataArr = data.Split(',');
-                x = Convert.ToInt32(dataArr[0]);
-                y = Convert.ToInt32(dataArr[1]);
+                gtX = Convert.ToInt32(dataArr[0]);
+                gtY = Convert.ToInt32(dataArr[1]);
+                GetDirection();
                 //obstRange = Convert.ToInt32(dataArr[2]);
                 //facing = Convert.ToDouble(dataArr[3]);
             }
@@ -104,6 +139,83 @@ namespace DummyRobotEnv
             }
         }
 
+        public void Draw(Graphics canvas, Map map)
+        {
+            // Координаты верхнего левого угла картинки робота
+            var actualX = x + map.offsetX - robotBmp.Width / 2;
+            var actualY = map.height + map.offsetY - (y + robotBmp.Height / 2);
+
+            // Координаты центра робота
+            var centerX = x + map.offsetX;
+            var centerY = map.height + map.offsetY - y;
+
+            // Координаты метки
+            var markX = obstRange * Math.Sin((facing) * Math.PI / 180) + centerX;
+            var markY = -obstRange * Math.Cos((facing) * Math.PI / 180) + centerY;
+
+            // Поворачиваем робота
+            var tmpBmp = RotateImageByAngle(robotBmp, (float)facing); // Пашет
+
+            // Рисуем робота и его центр
+            canvas.DrawImage(tmpBmp, actualX, actualY);
+            canvas.FillRectangle(new SolidBrush(Color.Red), centerX, centerY, 2, 2);
+
+            // Если на робота кликнули - рисуем рамку и выводим данные о нем на форму
+
+            if (selected)
+            {
+                canvas.DrawRectangle(new Pen(Color.Red), actualX, actualY, robotBmp.Width, robotBmp.Height);
+                if (map.parent != null)
+                {
+                    map.parent.listBox1.Items.Clear();
+                    map.parent.listBox1.Items.Add("Номер: " + id);
+                    map.parent.listBox1.Items.Add("X: " + x.ToString());
+                    map.parent.listBox1.Items.Add("Y: " + y.ToString());
+                    map.parent.listBox1.Items.Add("Дальномер: " + obstRange.ToString());
+                    map.parent.listBox1.Items.Add("Азимут: " + facing.ToString());
+                    map.parent.listBox1.Items.Add("Соединение: " + connection);
+                    if (!connectionFailed)
+                        map.parent.listBox1.Items.Add("Активно...");
+                    else
+                        map.parent.listBox1.Items.Add("РАЗОРВАНО!");
+                }
+            }
+
+            if (connectionFailed)
+            {
+                // Рисуем рамку вокруг робота и крест (Х_х)
+                canvas.DrawRectangle(new Pen(Color.Red), actualX, actualY, robotBmp.Width, robotBmp.Height);
+                canvas.DrawLine(new Pen(Color.Red), actualX, actualY, actualX + robotBmp.Width, actualY + robotBmp.Height);
+                canvas.DrawLine(new Pen(Color.Red), actualX + robotBmp.Width, actualY, actualX, actualY + robotBmp.Height);
+            }
+
+            // Куда робот движется
+            canvas.DrawLine(new Pen(Color.Red), centerX, centerY, gtX, gtY);
+
+            // Выводим данные (так, для теста)              
+            canvas.DrawString(facing.ToString(), new Font(FontFamily.GenericSansSerif, 10), new SolidBrush(Color.Black), actualX + 32, actualY);
+                
+
+            // В разумных ли приделах показания дальномера?
+            if (obstRange > 5 && obstRange < 150)
+            {
+                // Рисуем метку и линию до нее
+                canvas.FillRectangle(new SolidBrush(Color.Black), (float)markX, (float)markY, 2, 2);
+                canvas.DrawLine(new Pen(Color.Red), centerX, centerY, (float)markX, (float)markY);
+
+                // Сохраняем метку на карте
+
+                try
+                {
+                    map.bgMap.SetPixel((int)markX - map.offsetX, (int)markY - map.offsetY, Color.Black);
+                }
+                catch
+                {
+                    // Зашкалило.
+                }
+            }
+        }
+
         public void SendData(string msg)
         {
             // Посылаем данные виртуальному роботу
@@ -120,6 +232,19 @@ namespace DummyRobotEnv
                     connectionFailed = true;
                 }
             }
+        }
+
+        // Сниппет - поворачивает картинки
+
+        private static Bitmap RotateImageByAngle(System.Drawing.Image oldBitmap, float angle)
+        {
+            var newBitmap = new Bitmap(oldBitmap.Width, oldBitmap.Height);
+            var graphics = Graphics.FromImage(newBitmap);
+            graphics.TranslateTransform((float)oldBitmap.Width / 2, (float)oldBitmap.Height / 2);
+            graphics.RotateTransform(angle);
+            graphics.TranslateTransform(-(float)oldBitmap.Width / 2, -(float)oldBitmap.Height / 2);
+            graphics.DrawImage(oldBitmap, new Point(0, 0));
+            return newBitmap;
         }
     }
 }
