@@ -13,7 +13,7 @@ namespace DummyRobotEnv
         private int width;
         public int height;
         public Form1 parent;
-        private List<Robot> robotsList = new List<Robot>();
+        public List<Robot> robotsList = new List<Robot>();
         private Bitmap robotBmp = new Bitmap(Resources.Robot);
         private int id;
         public Bitmap bgMap;
@@ -119,7 +119,7 @@ namespace DummyRobotEnv
         {
             foreach (var robot in robotsList)
             {
-                //robot.Move(2);
+                robot.Move(2, parent);
             }
         }
 

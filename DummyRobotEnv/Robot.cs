@@ -43,12 +43,12 @@ namespace DummyRobotEnv
         // Всякие конструкторы.
         public Robot(Socket _s)
         {
-            x = 250;
-            y = 250;
+            x = 0;
+            y = 0;
             dist1 = 0;
             dist2 = 0;
             
-            facing = 45; // Тест - вбито гвоздями
+            facing = 90; // Тест - вбито гвоздями
             s = _s; // Инитаем сокет тем что передал сервер
             buf = new byte[32]; // Буфер принемаемых данных
             data = " "; // Строка для него
@@ -67,12 +67,15 @@ namespace DummyRobotEnv
         /// Двигвемся со скоростью в направлении куда facing
         /// </summary>
         /// <param name="speed"></param>
-        public void Move(double speed)
+        public void Move(double speed, Form1 parent)
         {
-            var dx = speed * Math.Cos(facing);
-            var dy = speed * Math.Sin(facing);
-            x += (int)dx;
-            y += (int)dy;
+            var dx = speed * Math.Cos(facing * Math.PI / 180) * 100;
+            var dy = speed * Math.Sin(facing * Math.PI / 180) * 100;
+            x += (int)dx; // Loss of fraction!
+            y += (int)dy; // Loss of fraction!
+            parent.listBox1.Items.Clear();
+            parent.listBox1.Items.Add(dx);
+            parent.listBox1.Items.Add(dy);
         }
 
         /// <summary>
@@ -82,23 +85,26 @@ namespace DummyRobotEnv
         {
             var centerX = x + 32;       //map.offsetX;
             var centerY = 532 - y;      //map.height + map.offsetY - y;
-            double dY = Math.Abs(centerX - gtX);
-            double dX = Math.Abs(centerY - (500 - gtY));
+            double dX = centerX - gtX;
+            double dY = centerY - (564 - gtY);
             var tmpFacing = Math.Acos(dX / Math.Sqrt(dX * dX + dY * dY)) / Math.PI * 180;
 
-
-            if (dY < 0 && dX < 0)
+            if (dX > 0 && dY < 0)
             {
-                  facing = tmpFacing;
+                facing = tmpFacing + 270;
             }
-            else if (dY < 0 && dX > 0)
+            else if (dY > 0 && dX < 0)
             {
-                facing = tmpFacing + 360;
+                facing = 180 - tmpFacing + 90;
             }
-  //          else if (dY > 0)
-  //          {
-  //              facing = -tmpFacing + 180;
-  //          }
+            else if (dX < 0)
+            {
+                facing = tmpFacing - 90;
+            }
+            else if (dY > 0)
+            {
+                facing = 270 - tmpFacing;
+            }
         }
 
         public void Disconnect()
@@ -127,7 +133,7 @@ namespace DummyRobotEnv
                 var dataArr = data.Split(',');
                 gtX = Convert.ToInt32(dataArr[0]);
                 gtY = Convert.ToInt32(dataArr[1]);
-                GetDirection();
+                //GetDirection();
                 //obstRange = Convert.ToInt32(dataArr[2]);
                 //facing = Convert.ToDouble(dataArr[3]);
             }

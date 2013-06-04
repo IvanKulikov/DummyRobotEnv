@@ -79,5 +79,22 @@ namespace DummyRobotEnv
             // Вызывает Form1_Paint
             Invalidate();
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (timer1.Enabled)
+            {
+                timer1.Enabled = false;
+            }
+            else
+            {
+                timer1.Enabled = true;
+            }
+        }
+
+        private void trackBar1_ValueChanged(object sender, EventArgs e)
+        {
+            map.robotsList[0].facing = trackBar1.Value;
+        }
     }
 }
