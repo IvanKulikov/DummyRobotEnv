@@ -10,8 +10,8 @@ namespace DummyRobotEnv
     public class Robot
     {
         
-        public int x;               // Реальное положение
-        public int y;
+        public float x;               // Реальное положение
+        public float y;
         public int gtX;             // Куда ехать Х
         public int gtY;             // Куда ехать У
         public int id;        
@@ -43,8 +43,8 @@ namespace DummyRobotEnv
         // Всякие конструкторы.
         public Robot(Socket _s)
         {
-            x = 0;
-            y = 0;
+            x = 100;
+            y = 100;
             dist1 = 0;
             dist2 = 0;
             
@@ -69,10 +69,10 @@ namespace DummyRobotEnv
         /// <param name="speed"></param>
         public void Move(double speed, Form1 parent)
         {
-            var dx = speed * Math.Cos(facing * Math.PI / 180) * 100;
-            var dy = speed * Math.Sin(facing * Math.PI / 180) * 100;
-            x += (int)dx; // Loss of fraction!
-            y += (int)dy; // Loss of fraction!
+            var dy = speed * Math.Cos(facing * Math.PI / 180);
+            var dx = speed * Math.Sin(facing * Math.PI / 180);
+            x += (float)dx; 
+            y += (float)dy; 
             parent.listBox1.Items.Clear();
             parent.listBox1.Items.Add(dx);
             parent.listBox1.Items.Add(dy);
@@ -86,24 +86,24 @@ namespace DummyRobotEnv
             var centerX = x + 32;       //map.offsetX;
             var centerY = 532 - y;      //map.height + map.offsetY - y;
             double dX = centerX - gtX;
-            double dY = centerY - (564 - gtY);
-            var tmpFacing = Math.Acos(dX / Math.Sqrt(dX * dX + dY * dY)) / Math.PI * 180;
-
+            double dY = centerY - gtY;
+            var tmpFacing = Math.Acos(dX / Math.Sqrt(dX * dX + dY * dY)) * 180 / Math.PI;
+            
             if (dX > 0 && dY < 0)
             {
-                facing = tmpFacing + 270;
+                facing = -tmpFacing + 270;
             }
             else if (dY > 0 && dX < 0)
             {
-                facing = 180 - tmpFacing + 90;
+                facing = tmpFacing - 90;
             }
             else if (dX < 0)
             {
-                facing = tmpFacing - 90;
+                facing = 270 - tmpFacing;
             }
             else if (dY > 0)
             {
-                facing = 270 - tmpFacing;
+                facing = 270 + tmpFacing;
             }
         }
 
@@ -133,7 +133,7 @@ namespace DummyRobotEnv
                 var dataArr = data.Split(',');
                 gtX = Convert.ToInt32(dataArr[0]);
                 gtY = Convert.ToInt32(dataArr[1]);
-                //GetDirection();
+                GetDirection();
                 //obstRange = Convert.ToInt32(dataArr[2]);
                 //facing = Convert.ToDouble(dataArr[3]);
             }
@@ -162,8 +162,8 @@ namespace DummyRobotEnv
         public void Draw(Graphics canvas, Map map)
         {
             // Координаты верхнего левого угла картинки робота
-            var actualX = x + map.offsetX - robotBmp.Width / 2;
-            var actualY = map.height + map.offsetY - (y + robotBmp.Height / 2);
+            var actualX = x + map.offsetX - robotBmp.Width / 2f;
+            var actualY = map.height + map.offsetY - (y + robotBmp.Height / 2f);
 
             // Координаты центра робота
             var centerX = x + map.offsetX;
