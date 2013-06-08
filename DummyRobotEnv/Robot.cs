@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -43,8 +44,8 @@ namespace DummyRobotEnv
         // Всякие конструкторы.
         public Robot(Socket _s)
         {
-            x = 100;
-            y = 100;
+            x = 0;
+            y = 0;
             dist1 = 0;
             dist2 = 0;
             
@@ -73,9 +74,6 @@ namespace DummyRobotEnv
             var dx = speed * Math.Sin(facing * Math.PI / 180);
             x += (float)dx; 
             y += (float)dy; 
-            parent.listBox1.Items.Clear();
-            parent.listBox1.Items.Add(dx);
-            parent.listBox1.Items.Add(dy);
         }
 
         /// <summary>
@@ -182,25 +180,6 @@ namespace DummyRobotEnv
 
             // Если на робота кликнули - рисуем рамку и выводим данные о нем на форму
 
-            if (selected)
-            {
-                canvas.DrawRectangle(new Pen(Color.Red), actualX, actualY, robotBmp.Width, robotBmp.Height);
-                if (map.parent != null)
-                {
-                    map.parent.listBox1.Items.Clear();
-                    map.parent.listBox1.Items.Add("Номер: " + id);
-                    map.parent.listBox1.Items.Add("X: " + x.ToString());
-                    map.parent.listBox1.Items.Add("Y: " + y.ToString());
-                    map.parent.listBox1.Items.Add("Дальномер: " + obstRange.ToString());
-                    map.parent.listBox1.Items.Add("Азимут: " + facing.ToString());
-                    map.parent.listBox1.Items.Add("Соединение: " + connection);
-                    if (!connectionFailed)
-                        map.parent.listBox1.Items.Add("Активно...");
-                    else
-                        map.parent.listBox1.Items.Add("РАЗОРВАНО!");
-                }
-            }
-
             if (connectionFailed)
             {
                 // Рисуем рамку вокруг робота и крест (Х_х)
@@ -215,27 +194,13 @@ namespace DummyRobotEnv
             // Выводим данные (так, для теста)              
             canvas.DrawString(facing.ToString(), new Font(FontFamily.GenericSansSerif, 10), new SolidBrush(Color.Black), actualX + 32, actualY);
                 
-
-            // В разумных ли приделах показания дальномера?
-            if (obstRange > 5 && obstRange < 150)
-            {
-                // Рисуем метку и линию до нее
-                canvas.FillRectangle(new SolidBrush(Color.Black), (float)markX, (float)markY, 2, 2);
-                canvas.DrawLine(new Pen(Color.Red), centerX, centerY, (float)markX, (float)markY);
-
-                // Сохраняем метку на карте
-
-                try
-                {
-                    map.bgMap.SetPixel((int)markX - map.offsetX, (int)markY - map.offsetY, Color.Black);
-                }
-                catch
-                {
-                    // Зашкалило.
-                }
-            }
         }
 
+
+        /// <summary>
+        /// Просто посылаем любое сообщение
+        /// </summary>
+        /// <param name="msg"></param>
         public void SendData(string msg)
         {
             // Посылаем данные виртуальному роботу
@@ -253,6 +218,27 @@ namespace DummyRobotEnv
                 }
             }
         }
+
+        /// <summary>
+        /// Посылаем данные телеметрии
+        /// </summary>
+        public void SendStatus()
+        {
+            var msg = x.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|" + y.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|0|" + facing.ToString();
+            if (s != null && s.Connected)
+            {
+                try
+                {
+                    s.Send(Encoding.ASCII.GetBytes(msg));
+                }
+                catch
+                {
+                    OnConnectionLost(this, null);
+                    connectionFailed = true;
+                }
+            }
+        }
+
 
         // Сниппет - поворачивает картинки
 

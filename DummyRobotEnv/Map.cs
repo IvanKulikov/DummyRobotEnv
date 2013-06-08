@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Forms;
 using DummyRobotEnv.Properties;
 
 namespace DummyRobotEnv
@@ -120,6 +119,7 @@ namespace DummyRobotEnv
             foreach (var robot in robotsList)
             {
                 robot.Move(2, parent);
+                robot.SendStatus();
             }
         }
 

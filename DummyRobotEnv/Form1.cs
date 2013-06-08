@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using System.Net.Sockets;
 
@@ -24,7 +19,7 @@ namespace DummyRobotEnv
             InitializeComponent();
             // Делаем так чтоб студия не ругалась когда мы обращаемся из разных тредов
             // в класс формы к элементам интерфейса
-            CheckForIllegalCrossThreadCalls = false;
+            //CheckForIllegalCrossThreadCalls = false;
             
             // Инитаемс сервер
             Srv = new Server();
@@ -49,7 +44,15 @@ namespace DummyRobotEnv
             var Robot1 = new Robot(s);
 
             // Добавляем его на карту
-            map.AddRobot(Robot1);
+            try
+            {
+                map.AddRobot(Robot1);
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
         }
 
 
@@ -62,12 +65,15 @@ namespace DummyRobotEnv
         {
             Graphics g = e.Graphics;
             // Рисуем карту и предметы на ней
-            map.Draw(g);
-
-            // Обновляем - ходьба роботов и проч
-            map.Update();
+            try
+            {
+                map.Draw(g);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
-
 
         /// <summary>
         /// Таймер тик хуле
@@ -77,24 +83,29 @@ namespace DummyRobotEnv
         private void timer1_Tick(object sender, EventArgs e)
         {
             // Вызывает Form1_Paint
-            Invalidate();
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            if (timer1.Enabled)
+            try
             {
-                timer1.Enabled = false;
+                Invalidate();
             }
-            else
+            catch (Exception)
             {
-                timer1.Enabled = true;
+
+                throw;
             }
         }
 
-        private void trackBar1_ValueChanged(object sender, EventArgs e)
+        private void timer2_Tick(object sender, EventArgs e)
         {
-            map.robotsList[0].facing = trackBar1.Value;
+            // Обновляем - ходьба роботов и проч
+            try
+            {
+                map.Update();
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
         }
     }
 }
