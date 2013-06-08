@@ -107,5 +107,16 @@ namespace DummyRobotEnv
                 throw;
             }
         }
+
+        private void Load_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenFileDialog foo = new OpenFileDialog();
+                foo.ShowDialog();
+                map.bgMap = new Bitmap(foo.FileName);
+            }
+            catch { }
+        }
     }
 }

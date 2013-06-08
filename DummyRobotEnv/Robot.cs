@@ -11,7 +11,7 @@ namespace DummyRobotEnv
     public class Robot
     {
         
-        public float x;               // Реальное положение
+        public float x;             // Реальное положение
         public float y;
         public int gtX;             // Куда ехать Х
         public int gtY;             // Куда ехать У
@@ -44,12 +44,15 @@ namespace DummyRobotEnv
         // Всякие конструкторы.
         public Robot(Socket _s)
         {
-            x = 0;
-            y = 0;
+            x = 250;
+            y = 250;
             dist1 = 0;
             dist2 = 0;
-            
-            facing = 90; // Тест - вбито гвоздями
+
+            var centerX = x + 32;       //map.offsetX;
+            var centerY = 532 - y;      //map.height + map.offsetY - y;
+
+            facing = 45; // Тест - вбито гвоздями
             s = _s; // Инитаем сокет тем что передал сервер
             buf = new byte[32]; // Буфер принемаемых данных
             data = " "; // Строка для него
@@ -68,12 +71,17 @@ namespace DummyRobotEnv
         /// Двигвемся со скоростью в направлении куда facing
         /// </summary>
         /// <param name="speed"></param>
-        public void Move(double speed, Form1 parent)
+        public void Move(double speed)
         {
-            var dy = speed * Math.Cos(facing * Math.PI / 180);
-            var dx = speed * Math.Sin(facing * Math.PI / 180);
-            x += (float)dx; 
-            y += (float)dy; 
+            var centerX = x + 32;       //map.offsetX;
+            var centerY = 532 - y;      //map.height + map.offsetY - y;
+            //if (Math.Abs(centerX - gtX) > 1 && Math.Abs(centerY - gtY) > 1)
+            //{
+                var dy = speed*Math.Cos(facing*Math.PI/180);
+                var dx = speed*Math.Sin(facing*Math.PI/180);
+                x += (float) dx;
+                y += (float) dy;
+            //}
         }
 
         /// <summary>
@@ -105,6 +113,44 @@ namespace DummyRobotEnv
             }
         }
 
+        /// <summary>
+        /// Симулятор дальномера. Просматривает пиксели впереди себя, и возвращает дальность до чорной области
+        /// </summary>
+        public void Scan(Bitmap bg)
+        {
+            var rad = 0;
+            var centerX = x + 32;       //map.offsetX;
+            var centerY = 532 - y;      //map.height + map.offsetY - y;
+            
+            while (rad < 250)
+            {
+                var markX = (int)(rad * Math.Sin((facing) * Math.PI / 180) + centerX);
+                var markY = (int)((centerY - rad * Math.Cos((facing) * Math.PI / 180)));
+                if (0 < markX - 32 && markX - 32 < bg.Width && 0 < markY - 32 && markY - 32 < bg.Height)
+                {
+                    var pix = bg.GetPixel(markX - 32, markY - 32);
+                    if (pix.R == 0 && pix.G == 0 && pix.B == 0)
+                    {
+                        //label1.Text = "Black space hit!";
+                        obstRange = rad;
+                        break;
+                    }
+                    else
+                    {
+                        obstRange = 9999;
+                        rad++;
+                        //label1.Text = "No hit!";
+                    }
+                }
+            }
+        }
+
+        public void Spin(int times)
+        {
+            
+        }
+
+
         public void Disconnect()
         {
             // Вызывается при удалении робота.
@@ -124,16 +170,11 @@ namespace DummyRobotEnv
             OnDataRecievedExternal(this, null);
             try
             {
-                // Если сообщения будут приходить ОЧЕНЬ часто то буду слипаться и неправильно парситься.
-                // Нужен СДЦ.
-
                 data = Encoding.ASCII.GetString(buf);
                 var dataArr = data.Split(',');
                 gtX = Convert.ToInt32(dataArr[0]);
                 gtY = Convert.ToInt32(dataArr[1]);
                 GetDirection();
-                //obstRange = Convert.ToInt32(dataArr[2]);
-                //facing = Convert.ToDouble(dataArr[3]);
             }
             catch
             {
@@ -191,6 +232,9 @@ namespace DummyRobotEnv
             // Куда робот движется
             canvas.DrawLine(new Pen(Color.Red), centerX, centerY, gtX, gtY);
 
+            // Луч до препятствия
+            canvas.DrawLine(new Pen(Color.Red), centerX, centerY, (float)markX, (float)markY);
+
             // Выводим данные (так, для теста)              
             canvas.DrawString(facing.ToString(), new Font(FontFamily.GenericSansSerif, 10), new SolidBrush(Color.Black), actualX + 32, actualY);
                 
@@ -224,7 +268,7 @@ namespace DummyRobotEnv
         /// </summary>
         public void SendStatus()
         {
-            var msg = x.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|" + y.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|0|" + facing.ToString();
+            var msg = x.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|" + y.ToString(CultureInfo.InvariantCulture.NumberFormat) + "|"+ obstRange.ToString() +"|" + facing.ToString();
             if (s != null && s.Connected)
             {
                 try
@@ -238,6 +282,7 @@ namespace DummyRobotEnv
                 }
             }
         }
+
 
 
         // Сниппет - поворачивает картинки

@@ -118,8 +118,18 @@ namespace DummyRobotEnv
         {
             foreach (var robot in robotsList)
             {
-                robot.Move(2, parent);
+
+                robot.Scan(bgMap);
+                if (robot.obstRange < 25)
+                {
+                    robot.facing += 1;
+                }
+                else
+                {
+                    robot.Move(2);
+                }
                 robot.SendStatus();
+                
             }
         }
 
