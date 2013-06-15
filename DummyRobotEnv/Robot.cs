@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Windows.Forms;
 using DummyRobotEnv.Properties;
 
 namespace DummyRobotEnv
@@ -42,7 +43,7 @@ namespace DummyRobotEnv
 
 
         // Всякие конструкторы.
-        public Robot(Socket _s)
+        public Robot(Socket _s, int _facing)
         {
             x = 250;
             y = 250;
@@ -52,7 +53,7 @@ namespace DummyRobotEnv
             var centerX = x + 32;       //map.offsetX;
             var centerY = 532 - y;      //map.height + map.offsetY - y;
 
-            facing = 45; // Тест - вбито гвоздями
+            facing = _facing; // Тест 
             s = _s; // Инитаем сокет тем что передал сервер
             buf = new byte[32]; // Буфер принемаемых данных
             data = " "; // Строка для него
@@ -176,9 +177,9 @@ namespace DummyRobotEnv
                 gtY = Convert.ToInt32(dataArr[1]);
                 GetDirection();
             }
-            catch
+            catch 
             {
-                // Посылка побилась
+               
             }
 
             Array.Clear(buf, 0, 32);
@@ -192,7 +193,7 @@ namespace DummyRobotEnv
             {
                 // Сокет таки не отвалился и все еще открыт, либо сервак лег
                 // Кидаем ивент
-                //OnConnectionLost(this, null);
+                OnConnectionLost(this, null);
                 connectionFailed = true;
                 s.Close();
             }
@@ -230,13 +231,13 @@ namespace DummyRobotEnv
             }
 
             // Куда робот движется
-            canvas.DrawLine(new Pen(Color.Red), centerX, centerY, gtX, gtY);
+            // canvas.DrawLine(new Pen(Color.Red), centerX, centerY, gtX, gtY);
 
             // Луч до препятствия
             canvas.DrawLine(new Pen(Color.Red), centerX, centerY, (float)markX, (float)markY);
 
             // Выводим данные (так, для теста)              
-            canvas.DrawString(facing.ToString(), new Font(FontFamily.GenericSansSerif, 10), new SolidBrush(Color.Black), actualX + 32, actualY);
+            // canvas.DrawString(facing.ToString(), new Font(FontFamily.GenericSansSerif, 10), new SolidBrush(Color.Black), actualX + 32, actualY);
                 
         }
 

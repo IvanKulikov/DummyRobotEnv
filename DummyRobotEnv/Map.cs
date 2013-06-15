@@ -11,7 +11,7 @@ namespace DummyRobotEnv
         public int offsetY;
         private int width;
         public int height;
-        public Form1 parent;
+        public MainView parent;
         public List<Robot> robotsList = new List<Robot>();
         private Bitmap robotBmp = new Bitmap(Resources.Robot);
         private int id;
@@ -33,7 +33,7 @@ namespace DummyRobotEnv
         /// <param name="_width"></param>
         /// <param name="_height"></param>
         /// <param name="_parent">Форма - родитель, в которой объявили экземпляр. Нужна для вывода инфы на гуй</param>
-        public Map(int _offsetX, int _offsetY, int _width, int _height, Form1 _parent)
+        public Map(int _offsetX, int _offsetY, int _width, int _height, MainView _parent)
         {
             parent = _parent;
             offsetX = _offsetX;
@@ -70,7 +70,10 @@ namespace DummyRobotEnv
         public void AddRobot(Robot rb)
         {
             // Добавляем робота в список на карте
-            robotsList.Add(rb);
+            lock (robotsList)
+            {
+                robotsList.Add(rb); 
+            }
 
             // Присваиваем ему id
             rb.id = id;
@@ -91,7 +94,19 @@ namespace DummyRobotEnv
         void rb_OnConnectionLost(Robot sender, EventArgs e)
         {
             // Обрабатываем дисконнект робота
-            parent.Invalidate();
+            // Удаляем его из списка
+            lock (robotsList)
+            {
+                foreach (var robot in robotsList)
+                {
+                    if (robot == sender)
+                    {
+                        robotsList.Remove(robot);
+                        break;
+                    }
+                }
+                parent.Invalidate();
+            }
         }
 
         /// <summary>
@@ -99,16 +114,19 @@ namespace DummyRobotEnv
         /// </summary>
         public void RemoveRobot()
         {
-            foreach (var robot in robotsList)
+            lock (robotsList)
             {
-                if (robot.selected)
+                foreach (var robot in robotsList)
                 {
-                    robot.Disconnect();
-                    robotsList.Remove(robot);
-                    break;
+                    if (robot.selected)
+                    {
+                        robot.Disconnect();
+                        robotsList.Remove(robot);
+                        break;
+                    }
                 }
+                parent.Invalidate();
             }
-            parent.Invalidate();
         }
 
         /// <summary>
@@ -116,20 +134,21 @@ namespace DummyRobotEnv
         /// </summary>
         public void Update()
         {
-            foreach (var robot in robotsList)
+            lock (robotsList)
             {
-
-                robot.Scan(bgMap);
-                if (robot.obstRange < 25)
+                foreach (var robot in robotsList)
                 {
-                    robot.facing += 1;
+                    robot.Scan(bgMap);
+                    if (robot.obstRange < 35)
+                    {
+                        robot.facing += 1;
+                    }
+                    else
+                    {
+                        robot.Move(2);
+                    }
+                    robot.SendStatus();
                 }
-                else
-                {
-                    robot.Move(2);
-                }
-                robot.SendStatus();
-                
             }
         }
 
@@ -140,9 +159,12 @@ namespace DummyRobotEnv
             canvas.DrawImage(bgMap, offsetX, offsetY, width, height);
 
             // Рисуем всех роботов
-            foreach (var robot in robotsList)
+            lock (robotsList)
             {
-                robot.Draw(canvas, this);
+                foreach (var robot in robotsList)
+                {
+                    robot.Draw(canvas, this);
+                }
             }
         }
     }
